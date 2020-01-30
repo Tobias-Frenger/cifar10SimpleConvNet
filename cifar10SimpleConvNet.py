@@ -38,15 +38,23 @@ model = keras.models.Sequential([
         keras.layers.Conv2D(32, kernel_size=3, strides=1, activation='relu'),
         keras.layers.MaxPool2D(pool_size=(2, 2), strides=1, padding='valid'),
         keras.layers.Flatten(),
+        keras.layers.Dense(32, activation='relu'),
+        keras.layers.Dropout(0.5),
         keras.layers.Dense(16, activation='relu'),
-        keras.layers.Dropout(0.2),
         keras.layers.Dense(10, activation='softmax')
         ])
 
 # Compile the model
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+optAdam = keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=False)
+model.compile(optimizer=optAdam, loss='categorical_crossentropy', metrics=['accuracy'])
 
 # Train and evaluate the model
 #model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=5, batch_size=32)
-model.fit(x_train, y_train, validation_split=0.2, epochs=5, batch_size=100)
+model.fit(x_train, y_train, validation_split=0.1, epochs=5, batch_size=100)
 model.evaluate(x_test, y_test, verbose=2)
+
+#Predict single image
+#img = cv2.imread('./test1/1.jpg')
+#model = create_model()
+#model.load_weights('./weight.h5')
+#model.predict(img)
