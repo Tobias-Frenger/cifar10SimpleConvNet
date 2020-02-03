@@ -33,14 +33,14 @@ y_test = to_categorical (y_test)
 y_train[0]
 #build a sequential model by stacking layers
 model = keras.models.Sequential([
-        keras.layers.Conv2D(32, kernel_size=5, strides=1, activation ='relu',input_shape=(32,32,3)),
-        keras.layers.MaxPool2D(pool_size=(2, 2), strides=2, padding='valid'),
-        keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu'),
-        keras.layers.MaxPool2D(pool_size=(2, 2), strides=2, padding='valid'),
-        keras.layers.Conv2D(32, kernel_size=1, strides=1, activation='relu'),
-        keras.layers.MaxPool2D(pool_size=(2, 2), strides=1, padding='valid'),
-        keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu'),
-        keras.layers.MaxPool2D(pool_size=(2, 2), strides=1, padding='valid'),
+        keras.layers.Conv2D(32, kernel_size=5, strides=1, activation ='relu',input_shape=(32,32,3)), #img size: 29x29
+        keras.layers.MaxPool2D(pool_size=(2, 2), strides=2, padding='valid'), #img size: 17x17
+        keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu'), #img size: 15x15
+        keras.layers.MaxPool2D(pool_size=(2, 2), strides=2, padding='valid'), #img size: 7x7
+        keras.layers.Conv2D(32, kernel_size=1, strides=1, activation='relu'), #img size: 7x7
+        keras.layers.MaxPool2D(pool_size=(2, 2), strides=1, padding='valid'), #img size: 6x6
+        keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu'), #img size: 4x4
+        keras.layers.MaxPool2D(pool_size=(2, 2), strides=1, padding='valid'), #img size: 3x3
         keras.layers.Flatten(),
         keras.layers.Dense(64, activation='relu'),
         keras.layers.Dropout(0.5),
