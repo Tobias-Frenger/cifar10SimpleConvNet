@@ -26,19 +26,23 @@ x_train[0].shape
 x_train = x_train.reshape(50000,32,32,3)
 x_test = x_test.reshape(10000,32,32,3)
 
-# One-hot encode target column?
+# One-hot encode target column
 y_train = to_categorical (y_train)
 y_test = to_categorical (y_test)
 
 y_train[0]
 #build a sequential model by stacking layers
 model = keras.models.Sequential([
-        keras.layers.Conv2D(64, kernel_size=3, strides=1, activation ='relu',input_shape=(32,32,3)),
+        keras.layers.Conv2D(32, kernel_size=5, strides=1, activation ='relu',input_shape=(32,32,3)),
+        keras.layers.MaxPool2D(pool_size=(2, 2), strides=2, padding='valid'),
+        keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu'),
+        keras.layers.MaxPool2D(pool_size=(2, 2), strides=2, padding='valid'),
+        keras.layers.Conv2D(32, kernel_size=1, strides=1, activation='relu'),
         keras.layers.MaxPool2D(pool_size=(2, 2), strides=1, padding='valid'),
-        keras.layers.Conv2D(32, kernel_size=3, strides=1, activation='relu'),
+        keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu'),
         keras.layers.MaxPool2D(pool_size=(2, 2), strides=1, padding='valid'),
         keras.layers.Flatten(),
-        keras.layers.Dense(32, activation='relu'),
+        keras.layers.Dense(64, activation='relu'),
         keras.layers.Dropout(0.5),
         keras.layers.Dense(16, activation='relu'),
         keras.layers.Dense(10, activation='softmax')
