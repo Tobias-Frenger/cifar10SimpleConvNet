@@ -1,0 +1,166 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jan 31 01:15:14 2020
+
+@author: Tobias
+"""
+
+#imports
+from __future__ import absolute_import, division, print_function, unicode_literals
+import matplotlib.pyplot as plt
+from sklearn.model_selection import KFold
+import tensorflow.keras as keras
+
+from sklearn import metrics
+from sklearn.model_selection import train_test_split
+import numpy as np
+import datetime
+import spectroSplice
+to_categorical = keras.utils.to_categorical
+# Load and prepare the MNIST dataset
+cifar = keras.datasets.cifar10
+(x_train, y_train), (x_test, y_test) = cifar.load_data()
+# Convert to from integers to floating-point numbers
+x_train, x_test = x_train / 255.0, x_test / 255.0
+
+# Look at one of the images in the dataset
+plt.imshow(x_train[0])
+
+# Check the shape of the image
+x_train[0].shape
+# Data pre-processing
+x_train = x_train.reshape(50000,32,32,3)
+x_test = x_test.reshape(10000,32,32,3)
+
+# One-hot encode target column?
+y_train = to_categorical (y_train)
+y_test = to_categorical (y_test)
+
+y_train[0]
+
+
+training_dataset = spectroSplice.generate_dataset_from_folders('C:/Users/Tobias/CNN/Dataset/Training', 8, 128, 128)
+validation_dataset = spectroSplice.generate_dataset_from_folders('C:/Users/Tobias/CNN/Dataset/Validation', 8, 128, 128)
+
+model = keras.models.Sequential([
+        #keras.layers.Conv2D(32, kernel_size=5, strides=1, activation ='relu',input_shape=(32,32,3)),
+        keras.layers.Conv2D(32, kernel_size=5, strides=1, activation ='relu',input_shape=(128,128,3)),
+        keras.layers.MaxPool2D(pool_size=(3, 3), strides=3, padding='valid'),
+        keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu'),
+        keras.layers.MaxPool2D(pool_size=(3, 3), strides=3, padding='valid'),
+        keras.layers.Conv2D(32, kernel_size=1, strides=1, activation='relu'),
+        keras.layers.MaxPool2D(pool_size=(2, 2), strides=2, padding='valid'),
+        keras.layers.Conv2D(32, kernel_size=3, strides=1, activation='relu'),
+        keras.layers.MaxPool2D(pool_size=(2, 2), strides=1, padding='valid'),
+        keras.layers.Flatten(),
+        keras.layers.Dense(16, activation='relu'),
+        keras.layers.Dense(8, activation='relu'),
+        #keras.layers.Dropout(0.7),
+        keras.layers.Dense(2, activation='softmax')
+        ])
+
+#optAdam = keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=False)
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+#build a sequential model by stacking layers
+def kFolding(model, x_train, y_train, x_test, y_test, folds, epochs):  
+    x_main, x_holdout, y_main, y_holdout = train_test_split(    
+    x_train, y_train, test_size=2000) 
+    kf = KFold(5, shuffle=True)
+    oos_y = []
+    oos_pred = []
+    fold = 0
+    
+    X_tr = x_train
+    Y_tr = y_train
+    X_te = x_test
+    Y_te = y_test
+    for train,test in kf.split(x_main):
+        fold += 1
+        print(f"Fold #{fold}")
+        
+        X_tr = x_main[train]
+        Y_tr = y_main[train]
+        X_te = x_main[test]
+        Y_te = y_main[test]
+    
+        # Compile the model
+        model = keras.models.Sequential([
+        keras.layers.Conv2D(32, kernel_size=3, strides=1, activation ='relu',input_shape=(32,32,3)),
+        keras.layers.MaxPool2D(pool_size=(2, 2), strides=2, padding='valid'),
+        keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu'),
+        keras.layers.MaxPool2D(pool_size=(2, 2), strides=2, padding='valid'),
+        keras.layers.Conv2D(32, kernel_size=1, strides=1, activation='relu'),
+        keras.layers.MaxPool2D(pool_size=(2, 2), strides=1, padding='valid'),
+        keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu'),
+        keras.layers.MaxPool2D(pool_size=(2, 2), strides=1, padding='valid'),
+        keras.layers.Flatten(),
+        keras.layers.Dense(64, activation='relu'),
+        keras.layers.Dropout(0.5),
+        keras.layers.Dense(16, activation='relu'),
+        keras.layers.Dropout(0.3),
+        keras.layers.Dense(10, activation='softmax')
+        ])
+    
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        
+        # Train and evaluate the model
+        model.fit(X_tr, Y_tr, validation_data=(X_te, Y_te), epochs=epochs, batch_size=32)
+        #model.fit(X_tr, Y_tr, validation_split=0.05, epochs=1, batch_size=32)
+        model.evaluate(x_test, y_test, verbose=2)
+        pred = model.predict(X_te)
+        oos_y.append(Y_te)
+        oos_pred.append(pred) 
+        # Measure accuracy
+        score = np.sqrt(metrics.mean_squared_error(pred,Y_te))
+        print(f"Fold score (RMSE): {score}")
+        #model.save_weights(f'C:/Users/Tobias/CNN/' + str(fold) + '_ConvNet_.h5')
+        fileName = (f"#{fold}" + "_convNet_" + datetime.datetime.now().strftime("%YY-%mM-%dD_-_%Hh%Mm%Ss") + ".h5")
+        print("Saved as: " + fileName)
+        model.save_weights(f'C:/Users/Tobias/CNN/' + str(fileName))
+    oos_y = np.concatenate(oos_y)
+    oos_pred = np.concatenate(oos_pred)
+    score = np.sqrt(metrics.mean_squared_error(oos_pred,oos_y))
+    print()
+    print(f"Cross-validated score (RMSE): {score}")  
+    
+    # Write the cross-validated prediction (from the last neural network)
+    holdout_pred = model.predict(x_holdout)
+    
+    score = np.sqrt(metrics.mean_squared_error(holdout_pred,y_holdout))
+    print(f"Holdout score (RMSE): {score}")
+    model.evaluate(x_test, y_test, verbose=2)
+    
+kFolding(model, x_train, y_train, x_test, y_test, 5, 10)
+
+history = model.fit(training_dataset, validation_data = validation_dataset, epochs=4)
+import matplotlib.pyplot as plt
+
+def show(history):
+    val_acc = history['val_accuracy']
+    acc = history['accuracy']
+    epochs = range(len(acc))
+    plt.plot(epochs, acc, 'b', label='Training acc')
+    plt.plot(epochs, val_acc, 'r', label='Validation acc')
+    plt.legend()
+    plt.figure()
+    
+show(history.history)
+#model.fit(x_train, y_train, validation_split=0.05, epochs=10, batch_size=32)
+#model.evaluate(x_test, y_test, verbose=2)
+
+import cv2
+import tensorflow as tf
+#Predict single image
+img = cv2.imread('C:/Users/Tobias/CNN/Images/Tobias/tobias_reading_14.jpg', cv2.IMREAD_UNCHANGED)
+#model = create_model()
+#model.load_weights('./weight.h5')
+print(img.shape)
+dim = (128,128)
+img_resized = cv2.resize(img, dim, interpolation = cv2.INTER_CUBIC)
+print(img_resized.shape)
+img_resized = np.expand_dims(img_resized, axis=0)
+print(img_resized.shape)
+img_resized = tf.cast(img_resized, tf.float32)
+y_prob = model.predict(img_resized)
+#y_classes = y_prob.argmax(axis=-1)
+print(y_prob)
